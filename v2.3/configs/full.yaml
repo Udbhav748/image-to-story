@@ -1,0 +1,23 @@
+# FULL MODE - Showcase/research configuration
+mode: "full"
+use_grounding_dino: true
+use_ocr: true
+use_faiss: true
+use_creative_planner: true
+use_verification: true
+max_evidence_per_frame: 100
+faiss_top_k: 20
+context_max_words: 800
+target_story_words: 300
+creativity_config:
+  creativity: 0.8
+  surprise: 0.7
+  humor: 0.6
+  mystery: 0.5
+  emotion: 0.6
+  dialogue: 0.5
+  metaphor: 0.4
+genre: "whimsical"
+tone: "comedic"
+seed: 0
+device: "cpu"

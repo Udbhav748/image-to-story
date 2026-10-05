@@ -1,0 +1,24 @@
+{
+  "case_id": "golden_003",
+  "description": "Restaurant scene - test for multi-character grounding",
+  "image_path": "images/thumb-chihiro004.png",
+  "expected_entities": ["man", "woman", "child", "table", "food"],
+  "expected_objects": ["table", "food", "hot dog", "fish"],
+  "known_visual_facts": [
+    "family at table",
+    "man eating hot dog",
+    "woman eating fish",
+    "child watching"
+  ],
+  "known_contradictions": [
+    "dog",
+    "coffee",
+    "bread",
+    "waiter",
+    "restaurant with coffee and bread"
+  ],
+  "expected_continuity": null,
+  "min_grounding_score": 0.6,
+  "min_word_count": 80,
+  "max_word_count": 120
+}

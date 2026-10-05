@@ -1,0 +1,29 @@
+{
+  "case_id": "golden_004",
+  "description": "Multi-frame sequence - girl with backpack disappearing",
+  "image_paths": [
+    "images/thumb-chihiro001.png",
+    "images/thumb-chihiro002.png",
+    "images/thumb-chihiro003.png"
+  ],
+  "expected_entities": ["girl", "car", "flowers", "statue", "monster", "street"],
+  "expected_objects": ["car", "flowers", "statue", "backpack"],
+  "known_visual_facts": [
+    "girl in car with flowers",
+    "girl near monster statue",
+    "street scene with people"
+  ],
+  "known_contradictions": [
+    "boy",
+    "dog",
+    "no girl in frame 2"
+  ],
+  "expected_continuity": {
+    "recurring_entities": ["girl"],
+    "entity_consistency_min": 0.5,
+    "transition_markers_min": 1
+  },
+  "min_grounding_score": 0.55,
+  "min_word_count": 200,
+  "max_word_count": 300
+}

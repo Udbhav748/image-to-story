@@ -1,0 +1,21 @@
+{
+  "case_id": "golden_001",
+  "description": "Single character with object - basic grounding test",
+  "image_path": "images/thumb-chihiro001.png",
+  "expected_entities": ["girl", "car", "flowers"],
+  "expected_objects": ["car", "flowers", "bouquet"],
+  "known_visual_facts": [
+    "girl in car",
+    "holding flowers",
+    "colorful flowers"
+  ],
+  "known_contradictions": [
+    "boy",
+    "dog",
+    "motorcycle"
+  ],
+  "expected_continuity": null,
+  "min_grounding_score": 0.6,
+  "min_word_count": 80,
+  "max_word_count": 120
+}

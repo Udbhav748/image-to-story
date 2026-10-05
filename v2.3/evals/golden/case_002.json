@@ -1,0 +1,21 @@
+{
+  "case_id": "golden_002",
+  "description": "Character with statue - test for object grounding",
+  "image_path": "images/thumb-chihiro002.png",
+  "expected_entities": ["girl", "statue", "monster", "car"],
+  "expected_objects": ["statue", "car", "monster statue"],
+  "known_visual_facts": [
+    "girl near statue",
+    "green monster statue",
+    "car passing by"
+  ],
+  "known_contradictions": [
+    "woman",
+    "forest",
+    "no statue"
+  ],
+  "expected_continuity": null,
+  "min_grounding_score": 0.6,
+  "min_word_count": 80,
+  "max_word_count": 120
+}

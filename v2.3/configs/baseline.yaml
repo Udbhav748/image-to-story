@@ -1,0 +1,23 @@
+# BASELINE MODE - Original BLIP + Qwen pipeline
+mode: "fast"
+use_grounding_dino: false
+use_ocr: false
+use_faiss: false
+use_creative_planner: false
+use_verification: false
+max_evidence_per_frame: 10
+faiss_top_k: 0
+context_max_words: 180
+target_story_words: 100
+creativity_config:
+  creativity: 0.3
+  surprise: 0.2
+  humor: 0.2
+  mystery: 0.1
+  emotion: 0.2
+  dialogue: 0.2
+  metaphor: 0.1
+genre: "whimsical"
+tone: "lighthearted"
+seed: 0
+device: "cpu"
