@@ -1,7 +1,56 @@
+# Python
 __pycache__/
 *.pyc
-*.log
+*.pyo
+*.pyd
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.env
+
+# Tests and tooling caches
 .pytest_cache/
-# local scratch scripts, not part of the submission
-analyze_results.py
-verify_numbers.py
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.rej
+
+# Local scratch scripts (never part of a release)
+temp_*.py
+tmp_*.py
+
+# Model weights and local caches must never be committed
+hf_cache/
+.huggingface/
+*.safetensors
+*.bin
+*.onnx
+*.pt
+*.pth
+*.ckpt
+
+# Local vector index / runtime dumps
+*.faiss
+*.index
+*.meta
+
+# Run output. Artifacts are produced by runs; keep the directory, drop content.
+artifacts/*
+!artifacts/.gitkeep
+
+# Vision cache produced by ingestion.cache.VisionCache
+.cache/
+cache/

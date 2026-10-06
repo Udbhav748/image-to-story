@@ -1,0 +1,99 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "image-story"
+version = "2.3.0"
+description = "Grounded, evidence-traceable image-to-story generation"
+readme = "README.md"
+authors = [{name = "Image -> Story Team"}]
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.1.0",
+    "transformers>=4.35.0",
+    "huggingface-hub>=0.20.0",
+    "pillow>=10.0.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "safetensors>=0.4.0",
+    "sentence-transformers>=2.2.0",
+    "faiss-cpu>=1.7.4",
+    "spacy>=3.7.0",
+    "imagehash>=4.3.0",
+    "pyyaml>=6.0",
+    "tqdm>=4.66.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "types-PyYAML>=6.0",
+]
+gpu = [
+    "faiss-gpu>=1.7.4",
+]
+
+[project.scripts]
+image-story = "image_story.cli:main"
+
+[project.urls]
+Repository = "https://github.com/Udbhav748/image-to-story"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["image_story*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-q --tb=short"
+markers = [
+    "unit: Unit tests (no model inference)",
+    "integration: Integration tests (require models or heavy fixtures)",
+    "regression: Regression tests pinning previously observed behaviour",
+    "benchmark: Scale benchmarks (deselected by default)",
+    "slow: Slow tests",
+]
+# The Challenge V1 suite has its own runner and its own dependencies:
+#   python challenges/image-story-v1/test_pipeline.py
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+]
+ignore = ["E501", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+# Benchmarks print tables; that is their purpose.
+"src/image_story/experiments/benchmarks.py" = ["T201"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
