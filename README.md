@@ -173,11 +173,24 @@ The V1 code above is the frozen challenge baseline. The production package in `s
 
 ```text
 images → vision (Florence-2, GroundingDINO, OCR) → evidence records → world state
-       → scene and entity memory (FAISS, hierarchical retrieval) → creative plan (7 beats)
+       → FAISS store → retrieval → context builder → creative plan (7 beats)
        → Qwen2.5-0.5B-Instruct story → claim extraction → verification → grounding evaluation → artifacts
 ```
 
+| Stage | Code |
+|---|---|
+| Vision | `src/image_story/vision/` (Florence-2, GroundingDINO, OCR) |
+| Evidence and world state | `src/image_story/evidence/`, `src/image_story/world/` |
+| FAISS store | `src/image_story/memory/faiss_store.py` (flat inner product by default; flat L2 and HNSW available) |
+| Scene and entity memory | `src/image_story/memory/` (collection memory, scenes, entities, transitions) |
+| Retrieval | `src/image_story/retrieval/` (flat for single and multi-image; hierarchical for collections) |
+| Planning and generation | `src/image_story/narrative/planner.py`, `src/image_story/generation/` |
+| Verification | `src/image_story/verification/` (claim extraction and visual checks) |
+| Evaluation | `src/image_story/evaluation/` (CLIP grounding over every frame, NLI contradiction, continuity) |
+
 Run it with `python -m image_story benchmarks/challenge-8-images/ --collection`. The full reference, including the stage order, domain contracts and layering, is in [docs/architecture/current.md](docs/architecture/current.md).
+
+> **Status:** the V2.3 results are not in this README yet. The 8-image run has one unexplained JSON failure (`thumb-chihiro004`), so those numbers wait until the run completes cleanly. The results above are from the V1 challenge code.
 
 ## Structured Vision Context
 
