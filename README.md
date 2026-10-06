@@ -98,6 +98,30 @@ The story model therefore loses detail and fills the gaps with invented ones. Fa
 
 ## Improved Pipeline
 
+```mermaid
+flowchart TD
+    subgraph INPUT["Input"]
+        IMG["Image"]
+    end
+    subgraph VISION["Vision"]
+        BLIP["BLIP - baseline: one caption"]
+        FLO["Florence-2 - caption, objects, dense regions"]
+    end
+    subgraph CONTEXT["Structured context"]
+        JSON["Structured vision JSON"]
+        CB["Deterministic context builder"]
+    end
+    subgraph STORY["Story generation"]
+        QWEN["Qwen2.5-0.5B-Instruct - same model, seed, decoding, prompt"]
+    end
+    subgraph EVAL["Evaluation"]
+        MET["CLIP, NLI, attribute check, repetition, length, runtime"]
+    end
+    IMG --> BLIP --> QWEN
+    IMG --> FLO --> JSON --> CB --> QWEN
+    QWEN --> OUT["Story"] --> MET
+```
+
 <table>
 <tr>
 <td valign="top" width="50%"><b>Baseline</b>
