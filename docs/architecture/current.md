@@ -139,10 +139,34 @@ Each of these existed twice before, with the copies diverging:
 ## Entry points
 
 - Production: `python -m image_story` (`__main__.py` -> `cli.py`), or the
-  `image-story` console script.
+  `image-story` console script (`pyproject.toml`).
+- Python: `PipelineOrchestrator` and `get_pipeline_config` are exported from
+  `image_story`; `run_single_image`, `run_multi_image` and `run_collection` are
+  the three methods.
 - Challenge V1: `challenges/image-story-v1/main.py`, with its own dependencies.
+  It is the frozen baseline and must not import from `src/`.
 
 There is no `main.py`, `main_v2.py` or `challenge_main.py` at the repository root.
+
+### Command line
+
+| Flag | Effect |
+|---|---|
+| `paths` (required) | image files or directories |
+| `--mode fast\|standard\|full\|baseline` | preset from `config/defaults.py` (default `standard`) |
+| `--multi` | one story across all images, in filename order |
+| `--collection` | hierarchical collection memory instead of flat retrieval |
+| `--no-eval` | skip evaluation |
+| `--config PATH` | `PipelineConfig` YAML; overrides `--mode` |
+| `--seed`, `--device cpu\|cuda` | reproducibility and device |
+| `--output-dir` | artifacts directory (default `artifacts`) |
+| `--name`, `--summary` | experiment name and aggregated JSON summary path |
+| `--log-level` | `DEBUG`, `INFO`, `WARNING` or `ERROR` |
+
+Makefile shortcuts: `make run`, `run-fast`, `run-standard`, `run-full`,
+`run-multi`, `run-collection`, `experiment NAME=...`, `benchmark`, `report`,
+`test`, `check` (lint, typecheck, test). Images default to
+`benchmarks/challenge-8-images`.
 
 ## Layering
 

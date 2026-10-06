@@ -84,11 +84,12 @@ uninteresting until Phase 3+.
 
 **CLI**
 ```bash
-python main_v2.py images/                                  # single image
-python main_v2.py images/ --multi                          # legacy sequence
-python main_v2.py images/ --collection-memory              # V2.3 collection path
-python main_v2.py images/ --mode fast|standard|full|baseline
+python -m image_story images/thumb-chihiro001.png          # single image
+python -m image_story images/ --multi                      # legacy sequence
+python -m image_story images/ --collection                 # V2.3 collection path
+python -m image_story images/ --mode fast|standard|full|baseline
 ```
+Full flag list: `docs/architecture/current.md`, "Command line".
 
 **Python**
 ```python
@@ -103,10 +104,10 @@ print(artifacts.collection_memory.scene_summaries)
 
 **Collection with sessions**
 ```python
-from image_story.collections import CollectionPipeline
+from image_story.ingestion.jobs import CollectionPipeline
 p = CollectionPipeline(config=config)
 collection = p.create_collection_from_paths(["a.jpg", "b.jpg"])
-result = p.process_collection(collection, use_collection_memory=True)
+result = p.process_collection(collection)
 ```
 
 Key artifacts on the collection path:
@@ -182,7 +183,7 @@ retrieval, makes the runtime-proof suite fail. It is a real guard, not decoratio
 
 | | |
 |---|---|
-| Baseline | `restructure/foundation-v2` — the reorganised single-package tree |
+| Baseline | `main` after PR #1 (`restructure/foundation-v2`) — the reorganised single-package tree |
 | Pre-reorganisation baseline | `release/v2.3-production-ready` (`f792965`) |
 | Version | `2.3.0` (`pyproject.toml`) |
 | Package | `image-story` (was `image-story-v2`) |

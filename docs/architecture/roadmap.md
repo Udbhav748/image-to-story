@@ -21,8 +21,8 @@ Perception, evidence with provenance, world state, FAISS, hierarchical memory,
 retrieval, grounded context, 7-beat planning, claim extraction and verification,
 evaluation, experiment manifests, reproducibility.
 
-Consolidated into one canonical package under `src/image_story/` in the
-`restructure/foundation-v2` branch. See [`current.md`](current.md).
+Consolidated into one canonical package under `src/image_story/` in
+`restructure/foundation-v2` (PR #1 into `main`). See [`current.md`](current.md).
 
 ## Phase 1 - V3 causal reasoning
 
