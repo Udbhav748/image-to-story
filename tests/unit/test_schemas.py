@@ -203,7 +203,7 @@ class TestPipelineConfig:
         config = PipelineConfig.from_mode("full")
         assert config.mode == "full"
         assert config.use_ocr is True
-        assert config.target_story_words == 300
+        assert config.target_story_words == 100
 
     def test_invalid_mode(self):
         with pytest.raises(ValueError):

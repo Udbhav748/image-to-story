@@ -9,6 +9,12 @@ from __future__ import annotations
 
 from typing import Any
 
+# Story length rule: one valid window (grounding checks it) and its midpoint
+# (the generation target). Both must be read from here.
+STORY_WORD_MIN = 80
+STORY_WORD_MAX = 120
+STORY_WORD_TARGET = (STORY_WORD_MIN + STORY_WORD_MAX) // 2
+
 
 def _memory(**overrides: Any) -> dict[str, Any]:
     """Scene/retrieval knobs shared by every mode."""
@@ -74,7 +80,7 @@ MODE_PRESETS: dict[str, dict[str, Any]] = {
         "use_faiss": False,
         "use_creative_planner": False,
         "use_verification": False,
-        "target_story_words": 100,
+        "target_story_words": STORY_WORD_TARGET,
         **_memory(top_k_scenes=3, top_k_evidence_per_scene=5, max_scenes_in_context=3),
         "creative_budget": _budget(safe=2, risky=1),
     },
@@ -84,7 +90,7 @@ MODE_PRESETS: dict[str, dict[str, Any]] = {
         "use_faiss": True,
         "use_creative_planner": True,
         "use_verification": True,
-        "target_story_words": 250,
+        "target_story_words": STORY_WORD_TARGET,
         **_memory(top_k_scenes=5, top_k_evidence_per_scene=10, max_scenes_in_context=5),
         "creative_budget": _budget(safe=8, risky=3),
     },
@@ -94,7 +100,7 @@ MODE_PRESETS: dict[str, dict[str, Any]] = {
         "use_faiss": True,
         "use_creative_planner": True,
         "use_verification": True,
-        "target_story_words": 300,
+        "target_story_words": STORY_WORD_TARGET,
         "creativity_config": FULL_CREATIVITY,
         **_memory(top_k_scenes=7, top_k_evidence_per_scene=15, max_scenes_in_context=7),
         "creative_budget": _budget(safe=10, risky=4),
@@ -105,7 +111,7 @@ MODE_PRESETS: dict[str, dict[str, Any]] = {
         "use_faiss": False,
         "use_creative_planner": False,
         "use_verification": False,
-        "target_story_words": 100,
+        "target_story_words": STORY_WORD_TARGET,
         "creativity_config": BASELINE_CREATIVITY,
         **_memory(top_k_scenes=3, top_k_evidence_per_scene=5, max_scenes_in_context=3),
         "creative_budget": _budget(safe=2, risky=1),
@@ -116,7 +122,7 @@ MODE_PRESETS: dict[str, dict[str, Any]] = {
         "use_faiss": True,
         "use_creative_planner": True,
         "use_verification": True,
-        "target_story_words": 300,
+        "target_story_words": STORY_WORD_TARGET,
         **_memory(top_k_scenes=10, top_k_evidence_per_scene=20, max_scenes_in_context=10),
         "creative_budget": _budget(safe=10, risky=4),
     },

@@ -40,6 +40,7 @@ from ..retrieval.flat import EvidenceRetriever
 from ..retrieval.hierarchical import HierarchicalRetriever, create_hierarchical_retriever
 from ..retrieval.ranking import EvidenceRanker
 from ..retrieval.sequence import SequenceContextBuilder
+from ..verification.name_guard import guard_invented_names
 from ..verification.visual import VisualVerifier
 from ..vision.florence import Florence2Model
 from ..vision.grounding import GroundingDINOModel, create_grounding_dino
@@ -245,11 +246,32 @@ class PipelineOrchestrator:
         finally:
             self._timer.record("generation_s", time.perf_counter() - start)
         artifacts.story_draft.generation_time_s = self._timer.stages["generation_s"]
+        self._guard_names(artifacts)
 
-    def _finalize(self, artifacts: PipelineArtifacts, image: Image.Image | None, evaluate: bool) -> PipelineArtifacts:
+    def _guard_names(self, artifacts: PipelineArtifacts) -> None:
+        """Replace names the evidence context does not support."""
+        draft = artifacts.story_draft
+        if not draft or not draft.text or not artifacts.context:
+            return
+        text, removed = guard_invented_names(draft.text, artifacts.context)
+        if removed:
+            self.logger.info("Name guard replaced %d unsupported name(s): %s", len(removed), ", ".join(sorted(set(removed))))
+            draft.text = text
+            draft.word_count = len(text.split())
+
+    def _finalize(
+        self,
+        artifacts: PipelineArtifacts,
+        image: Image.Image | None,
+        evaluate: bool,
+        frames: list[Image.Image] | None = None,
+    ) -> PipelineArtifacts:
         if evaluate:
             with self._timer.stage("evaluation_s"):
-                artifacts.evaluation = self._evaluator.evaluate(artifacts, image)
+                if frames is None:
+                    artifacts.evaluation = self._evaluator.evaluate(artifacts, image)
+                else:
+                    artifacts.evaluation = self._evaluator.evaluate(artifacts, image, frames=frames)
 
         artifacts.runtime = self._timer.to_dict()
         artifacts.logs = self._logs
@@ -385,8 +407,8 @@ class PipelineOrchestrator:
         # Stage 7: Generation
         self._generate(artifacts, prompt)
 
-        # Evaluation uses the first frame for image-side metrics.
-        return self._finalize(artifacts, images[0] if images else None, evaluate)
+        # Evaluation: the first frame drives claim verification; CLIP grounding scores all frames.
+        return self._finalize(artifacts, images[0] if images else None, evaluate, frames=images)
 
     def run_collection(self, image_paths: list[str], evaluate: bool = True) -> PipelineArtifacts:
         """Run the pipeline over a collection using hierarchical memory.
@@ -485,7 +507,7 @@ class PipelineOrchestrator:
         # Stage 7: Generation
         self._generate(artifacts, prompt)
 
-        return self._finalize(artifacts, images[0] if images else None, evaluate)
+        return self._finalize(artifacts, images[0] if images else None, evaluate, frames=images)
 
     def cleanup(self) -> None:
         """Unload every loaded model."""

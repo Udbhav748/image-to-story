@@ -12,6 +12,7 @@ from image_story.config.defaults import (
     DEFAULT_CREATIVITY,
     FULL_CREATIVITY,
     MODE_PRESETS,
+    STORY_WORD_TARGET,
 )
 from image_story.domain.enums import PipelineMode
 from image_story.domain.schemas import PipelineConfig
@@ -50,7 +51,7 @@ def test_fast_preset():
     assert config.use_faiss is False
     assert config.use_creative_planner is False
     assert config.use_verification is False
-    assert config.target_story_words == 100
+    assert config.target_story_words == STORY_WORD_TARGET
     assert config.top_k_scenes == 3
     assert config.top_k_evidence_per_scene == 5
     assert config.max_scenes_in_context == 3
@@ -65,7 +66,7 @@ def test_standard_preset():
     assert config.use_faiss is True
     assert config.use_creative_planner is True
     assert config.use_verification is True
-    assert config.target_story_words == 250
+    assert config.target_story_words == STORY_WORD_TARGET
     assert config.top_k_scenes == 5
     assert config.top_k_evidence_per_scene == 10
     assert config.max_scenes_in_context == 5
@@ -76,7 +77,7 @@ def test_standard_preset():
 def test_full_preset():
     config = PipelineConfig.from_mode("full")
     assert config.use_ocr is True
-    assert config.target_story_words == 300
+    assert config.target_story_words == STORY_WORD_TARGET
     assert config.top_k_scenes == 7
     assert config.top_k_evidence_per_scene == 15
     assert config.max_scenes_in_context == 7
@@ -90,7 +91,7 @@ def test_baseline_preset():
     assert config.use_faiss is False
     assert config.use_creative_planner is False
     assert config.use_verification is False
-    assert config.target_story_words == 100
+    assert config.target_story_words == STORY_WORD_TARGET
     assert config.creativity_config == BASELINE_CREATIVITY
 
 
@@ -99,7 +100,7 @@ def test_collection_preset():
     assert config.top_k_scenes == 10
     assert config.top_k_evidence_per_scene == 20
     assert config.max_scenes_in_context == 10
-    assert config.target_story_words == 300
+    assert config.target_story_words == STORY_WORD_TARGET
 
 
 @pytest.mark.parametrize("mode", sorted(MODE_PRESETS))
@@ -140,3 +141,13 @@ def test_defaults_are_not_shared_between_instances():
 def test_module_defaults_match_schema_defaults():
     assert PipelineConfig().creativity_config == DEFAULT_CREATIVITY
     assert PipelineConfig().creative_budget == DEFAULT_CREATIVE_BUDGET
+
+
+def test_story_word_target_inside_valid_window():
+    from image_story.config.defaults import MODE_PRESETS, STORY_WORD_MAX, STORY_WORD_MIN, STORY_WORD_TARGET
+
+    assert (STORY_WORD_MIN, STORY_WORD_MAX) == (80, 120)
+    assert STORY_WORD_MIN <= STORY_WORD_TARGET <= STORY_WORD_MAX
+    assert STORY_WORD_TARGET == 100
+    for name, preset in MODE_PRESETS.items():
+        assert preset["target_story_words"] == STORY_WORD_TARGET, name

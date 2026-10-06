@@ -12,6 +12,9 @@ def _content_words(text: str) -> set[str]:
     return set(re.findall(r"[a-z]+", text.lower()))
 
 
+# Function words ignored when matching a claim subject against evidence entities.
+_STOPWORDS = {"a", "an", "the", "this", "that", "his", "her", "its", "their"}
+
 # Colour words used for attribute-conflict detection during textual verification.
 _COLORS = {
     "red", "blue", "green", "yellow", "black", "white",
@@ -267,6 +270,23 @@ class ClaimVerifier:
         # raise AttributeError on first use.
         self._extractor = extractor or ClaimExtractor()
 
+    @staticmethod
+    def _link_evidence(
+        claim: StoryClaim,
+        supporting: list[EvidenceRecord],
+        contradicting: list[EvidenceRecord],
+    ) -> None:
+        """Record the ids of the evidence that supports or contradicts a claim.
+
+        Ids are taken from the EvidenceRecord objects themselves, so every id in
+        `claim.evidence_ids` resolves to an evidence record that was checked.
+        """
+        ids: list[str] = []
+        for record in [*supporting, *contradicting]:
+            if record.id not in ids:
+                ids.append(record.id)
+        claim.evidence_ids = ids
+
     def verify_claims(
         self,
         claims: list[StoryClaim],
@@ -279,6 +299,9 @@ class ClaimVerifier:
         for claim in claims:
             if self._visual_verifier and image:
                 result = self._visual_verifier.verify_claim(claim, image, evidence_records)
+                self._link_evidence(
+                    result.claim, result.supporting_evidence, result.contradicting_evidence
+                )
             else:
                 result = self._textual_verification(claim, evidence_records)
             results.append(result)
@@ -308,6 +331,8 @@ class ClaimVerifier:
         claim_text = claim.to_natural_language().lower()
         claim_colors = _COLORS & _content_words(claim_text)
 
+        subject_words = _content_words(claim.subject) - _STOPWORDS
+
         for evidence in evidence_records:
             evidence_text = evidence.evidence_text.lower()
             evidence_entity = evidence.entity.lower()
@@ -316,7 +341,8 @@ class ClaimVerifier:
             matches += sum(1 for term in claim_terms if term and term in evidence_entity)
 
             # Same entity, incompatible colour attribute -> contradiction.
-            if claim_colors and claim.subject.lower() in evidence_entity:
+            same_entity = bool(subject_words & _content_words(evidence_entity))
+            if claim_colors and same_entity:
                 evidence_colors = _COLORS & _content_words(evidence_text)
                 if evidence_colors and not (claim_colors & evidence_colors):
                     contradicting.append(evidence)
@@ -337,6 +363,7 @@ class ClaimVerifier:
             status = ClaimStatus.UNSUPPORTED
             confidence = 0.5
 
+        self._link_evidence(claim, supporting, contradicting)
         return VerificationResult(
             claim_id=claim.id,
             claim=claim,
@@ -400,69 +427,93 @@ class ClaimVerifier:
         story: str,
         verification_results: list[VerificationResult],
         evidence_records: list[EvidenceRecord],
+        max_attempts: int = 2,
     ) -> tuple[str, list[dict]]:
-        """Repair ONLY visually contradicted claims in the story.
+        """Repair colour attributes that contradict evidence, in a bounded loop.
 
-        Does NOT modify:
-        - Creative content (personality, motivation, humor, metaphor, dialogue)
-        - Inferred claims (qualified statements)
-        - Only fixes directly contradicted visual facts
+        Each attempt re-extracts the claims of every sentence, re-verifies them
+        textually against `evidence_records`, and rewrites a sentence only when
+        an observed claim is CONTRADICTED: the contradicted colour word is
+        replaced by the colour the evidence reports for the same entity. The
+        loop stops when an attempt changes nothing or after `max_attempts`.
+
+        Only observed claims are touched. Creative, inferred and uncontradicted
+        sentences are left as they are. `verification_results` is accepted for
+        API compatibility; repair decisions are made from `evidence_records`.
+
+        Returns the repaired story and a report with one entry per changed
+        sentence per attempt: {"attempt", "original", "repaired", "issues"}.
         """
-        repaired_sentences: list[str] = []
+        if max_attempts < 1:
+            return story, []
+
+        current = story
         repair_report: list[dict] = []
 
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", story.strip()) if s.strip()]
+        for attempt in range(1, max_attempts + 1):
+            sentences = _split_text(current)
+            changed = False
+            next_sentences: list[str] = []
 
-        for sentence in sentences:
-            # Check if this sentence has CONTRADICTED observed claims only
-            sentence_claims = self._extractor._extract_claims_from_sentence(sentence, 0)
-            needs_repair = False
-            repair_info: list[dict] = []
+            for sentence in sentences:
+                repaired, issues = self._repair_sentence(sentence, evidence_records)
+                next_sentences.append(repaired)
+                if repaired != sentence:
+                    changed = True
+                    repair_report.append({
+                        "attempt": attempt,
+                        "original": sentence,
+                        "repaired": repaired,
+                        "issues": issues,
+                    })
 
-            for claim in sentence_claims:
-                claim.claim_classification = self._extractor._classify_claim_classification(claim, "")
-                for vr in verification_results:
-                    if vr.claim.id == claim.id:
-                        # ONLY repair if: observed claim AND contradicted by evidence
-                        if claim.claim_classification == "observed" and vr.status == ClaimStatus.CONTRADICTED.value:
-                            needs_repair = True
-                            repair_info.append({
-                                "claim": claim.to_natural_language(),
-                                "classification": claim.claim_classification,
-                                "status": vr.status,
-                                "original_sentence": sentence,
-                            })
+            current = " ".join(next_sentences)
+            if not changed:
+                break
 
-            if needs_repair:
-                repaired = self._repair_sentence(sentence, repair_info)
-                repaired_sentences.append(repaired)
-                repair_report.append({
-                    "original": sentence,
-                    "repaired": repaired,
-                    "issues": repair_info,
-                })
-            else:
-                repaired_sentences.append(sentence)
+        return current, repair_report
 
-        return " ".join(repaired_sentences), repair_report
-
-    def _repair_sentence(self, sentence: str, repair_info: list[dict]) -> str:
-        """Attempt to repair a sentence with CONTRADICTED visual claims only."""
+    def _repair_sentence(
+        self,
+        sentence: str,
+        evidence_records: list[EvidenceRecord],
+    ) -> tuple[str, list[dict]]:
+        """Rewrite the contradicted colour words of one sentence, if any."""
+        issues: list[dict] = []
         repaired = sentence
 
-        for issue in repair_info:
-            # Only qualify directly contradicted visual facts
-            # Replace definitive visual statements with qualified ones
-            replacements = [
-                (f"The {issue['claim'].split(' ')[1]} {issue['claim'].split(' ')[2]} the {issue['claim'].split(' ')[-1]}",
-                 f"The {issue['claim'].split(' ')[1]} appeared to {issue['claim'].split(' ')[2]} the {issue['claim'].split(' ')[-1]}"),
-                (" was ", " appeared to be "),
-                (" is ", " seemed to be "),
-                (" has ", " appeared to have "),
-            ]
-            for old, new in replacements:
-                if old in repaired:
-                    repaired = repaired.replace(old, new)
-                    break
+        for claim in self._extractor._extract_claims_from_sentence(sentence, 0):
+            claim.claim_classification = self._extractor._classify_claim_classification(claim, "")
+            if claim.claim_classification != "observed":
+                continue
 
-        return repaired
+            result = self._textual_verification(claim, evidence_records)
+            if result.status != ClaimStatus.CONTRADICTED.value:
+                continue
+
+            claim_colors = _COLORS & _content_words(claim.to_natural_language().lower())
+            evidence_colors: set[str] = set()
+            for record in result.contradicting_evidence:
+                evidence_colors |= _COLORS & _content_words(record.evidence_text.lower())
+            # Only swap when the evidence names exactly one replacement colour.
+            if len(evidence_colors) != 1:
+                continue
+            replacement = next(iter(evidence_colors))
+
+            for wrong in sorted(claim_colors - evidence_colors):
+                pattern = re.compile(rf"\b{re.escape(wrong)}\b", re.IGNORECASE)
+                new_sentence, count = pattern.subn(replacement, repaired, count=1)
+                if count:
+                    issues.append({
+                        "claim": claim.to_natural_language(),
+                        "status": result.status,
+                        "replaced": wrong,
+                        "with": replacement,
+                    })
+                    repaired = new_sentence
+
+        return repaired, issues
+
+
+def _split_text(text: str) -> list[str]:
+    return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s.strip()]

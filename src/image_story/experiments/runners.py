@@ -175,7 +175,7 @@ def run_experiment(
                     save_artifacts(artifacts, str(out_dir))
                 summary.results.append(_to_result(artifacts, label, out_dir or ""))
             except Exception as e:  # noqa: BLE001 - one bad input must not stop the run
-                logger.warning("Failed on %s: %s", label, e)
+                logger.exception("Failed on %s: %s", label, e)
                 summary.results.append(
                     ExperimentResult(image_path=label, run_id="", success=False, error=str(e))
                 )

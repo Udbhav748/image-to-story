@@ -3,6 +3,8 @@ import time
 
 from PIL import Image
 
+from collections.abc import Sequence
+
 from ..domain.schemas import (
     EvaluationResult,
     PipelineArtifacts,
@@ -31,8 +33,14 @@ class ComprehensiveEvaluator:
         self,
         artifacts: PipelineArtifacts,
         image: Image.Image | None = None,
+        frames: Sequence[Image.Image] | None = None,
     ) -> EvaluationResult:
-        """Run comprehensive evaluation on pipeline artifacts."""
+        """Run comprehensive evaluation on pipeline artifacts.
+
+        `image` is the primary frame (used for claim verification). `frames`,
+        when given, is the full frame sequence scored by CLIP; it defaults to
+        `[image]`.
+        """
 
         t0 = time.perf_counter()
 
@@ -52,7 +60,10 @@ class ComprehensiveEvaluator:
         caption = self._build_caption(observations)
 
         # Grounding evaluation (CLIP, NLI, attribute)
-        grounding_result = self._grounding_evaluator.evaluate(image, caption, story) if image else None
+        grounding_frames = list(frames) if frames else ([image] if image else [])
+        grounding_result = (
+            self._grounding_evaluator.evaluate(grounding_frames, caption, story) if grounding_frames else None
+        )
 
         # Claim extraction and verification
         claims = self._claim_extractor.extract_claims(story, caption)
@@ -86,7 +97,9 @@ class ComprehensiveEvaluator:
         if grounding_result:
             result.grounding_score = grounding_result.grounding_score
             result.clip_image_story_mean = grounding_result.clip_image_story_mean
+            result.clip_image_story_min = grounding_result.clip_image_story_min
             result.nli_contra_mean = grounding_result.nli_contra_mean
+            result.nli_contra_max = grounding_result.nli_contra_max
             result.attribute_conflict = grounding_result.attribute_conflict
             result.repetition_rate = grounding_result.repetition_rate
             result.length_valid = grounding_result.length_valid

@@ -1,12 +1,14 @@
 """Grounding evaluation metrics (CLIP, NLI, attribute checks)."""
 import re
 import time
+from collections.abc import Sequence
 from typing import Any
 
 import torch
 from PIL import Image
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, CLIPModel, CLIPProcessor
 
+from ..config.defaults import STORY_WORD_MAX, STORY_WORD_MIN
 from ..domain.schemas import EvaluationResult, StoryDraft
 
 
@@ -61,11 +63,19 @@ class GroundingEvaluator:
 
     def evaluate(
         self,
-        image: Image.Image,
+        image: Image.Image | Sequence[Image.Image],
         caption: str,
         story: StoryDraft,
     ) -> EvaluationResult:
-        """Full grounding evaluation."""
+        """Full grounding evaluation.
+
+        `image` may be a single frame or a sequence of frames. With several
+        frames, CLIP similarity per sentence is averaged across frames before
+        the mean/min aggregation.
+        """
+        frames = [image] if isinstance(image, Image.Image) else list(image)
+        if not frames:
+            raise ValueError("GroundingEvaluator.evaluate requires at least one frame")
         self._load_clip()
         self._load_nli()
 
@@ -78,7 +88,7 @@ class GroundingEvaluator:
 
         # CLIP evaluation
         clip_start = time.perf_counter()
-        clip_sims = self._compute_clip_sims(image, sentences)
+        clip_sims = self._compute_clip_sims_across_frames(frames, sentences)
         clip_s = time.perf_counter() - clip_start
 
         clip_mean = float(clip_sims.mean()) if len(clip_sims) > 0 else 0.0
@@ -101,7 +111,7 @@ class GroundingEvaluator:
 
         # Length validity
         word_count = len(story.text.split())
-        length_valid = 80 <= word_count <= 120
+        length_valid = STORY_WORD_MIN <= word_count <= STORY_WORD_MAX
 
         # Grounding pass
         grounding_pass = grounding_score >= 0.60 and not conflicts and length_valid
@@ -115,7 +125,6 @@ class GroundingEvaluator:
             grounding_score=grounding_score,
             clip_image_story_mean=clip_mean,
             clip_image_story_min=float(clip_sims.min()) if len(clip_sims) > 0 else 0.0,
-            clip_image_caption=0.0,  # Not computed here
             nli_contra_mean=nli_mean,
             nli_contra_max=float(nli_contras.max()) if len(nli_contras) > 0 else 0.0,
             attribute_conflict=conflicts,
@@ -130,6 +139,13 @@ class GroundingEvaluator:
 
     def _split_sentences(self, text: str) -> list[str]:
         return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s.strip()]
+
+    def _compute_clip_sims_across_frames(
+        self, frames: Sequence[Image.Image], texts: list[str]
+    ) -> torch.Tensor:
+        """Per-sentence CLIP similarity, averaged over all frames."""
+        per_frame = torch.stack([self._compute_clip_sims(frame, texts) for frame in frames])
+        return per_frame.mean(dim=0)
 
     def _compute_clip_sims(self, image: Image.Image, texts: list[str]) -> torch.Tensor:
         inputs = self._clip_processor(

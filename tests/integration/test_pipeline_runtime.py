@@ -954,21 +954,15 @@ class TestProvenanceChain:
                 if sid:
                     assert sid in scene_ids
 
-    def test_claim_evidence_ids_field_is_unpopulated_known_gap(self, artifacts):
-        """
-        DOCUMENTED GAP, not a passing claim of correctness.
-
-        `StoryClaim.evidence_ids` exists in the schema but ClaimExtractor never
-        populates it, so the direct claim -> evidence_ids -> RetrievedEvidence
-        hop is absent in the current architecture. This test records the actual
-        behaviour so the gap is visible and cannot be mistaken for a working
-        link; it will need updating when the field is wired up.
-        """
-        populated = [c for c in artifacts.claims if c.evidence_ids]
-        assert populated == [], (
-            "StoryClaim.evidence_ids is now populated -- the documented "
-            "provenance gap has been closed; update this test and the report."
-        )
+    def test_claim_evidence_ids_resolve_to_evidence(self, artifacts):
+        """StoryClaim.evidence_ids is populated by verification and every id
+        resolves to an evidence record that was checked for the claim."""
+        known_ids = {e.id for obs in artifacts.observations for e in obs.evidence_records}
+        for vr in artifacts.verification_results:
+            linked = set(vr.claim.evidence_ids)
+            checked = {e.id for e in vr.supporting_evidence + vr.contradicting_evidence}
+            assert linked == checked
+            assert linked <= known_ids
 
 
 # ===========================================================================

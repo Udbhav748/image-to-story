@@ -16,7 +16,11 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-from ..config.defaults import DEFAULT_CREATIVE_BUDGET, DEFAULT_CREATIVITY
+from ..config.defaults import (
+    DEFAULT_CREATIVE_BUDGET,
+    DEFAULT_CREATIVITY,
+    STORY_WORD_TARGET,
+)
 from .enums import (
     EvidenceConfidence,
     EvidenceType,
@@ -757,7 +761,6 @@ class EvaluationResult:
     grounding_score: float = 0.0
     clip_image_story_mean: float = 0.0
     clip_image_story_min: float = 0.0
-    clip_image_caption: float = 0.0
     nli_contra_mean: float = 0.0
     nli_contra_max: float = 0.0
     attribute_conflict: list[str] = field(default_factory=list)
@@ -787,7 +790,6 @@ class EvaluationResult:
             "grounding_score": self.grounding_score,
             "clip_image_story_mean": self.clip_image_story_mean,
             "clip_image_story_min": self.clip_image_story_min,
-            "clip_image_caption": self.clip_image_caption,
             "nli_contra_mean": self.nli_contra_mean,
             "nli_contra_max": self.nli_contra_max,
             "attribute_conflict": self.attribute_conflict,
@@ -830,7 +832,7 @@ class PipelineConfig:
     scene_retrieval_threshold: float = 0.5
     evidence_retrieval_threshold: float = 0.4
     max_scenes_in_context: int = 5
-    target_story_words: int = 250
+    target_story_words: int = STORY_WORD_TARGET
     creativity_config: dict[str, float] = field(default_factory=lambda: dict(DEFAULT_CREATIVITY))
     # V2.2: Risk-aware creative budget
     creative_budget: dict[str, Any] = field(default_factory=lambda: _default_creative_budget())

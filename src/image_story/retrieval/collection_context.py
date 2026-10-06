@@ -295,6 +295,12 @@ class CollectionContextBuilder(ContextBuilder):
         parts.append("")
         parts.append(context)
         parts.append("")
+        parts.append(
+            "Treat the context above as hard facts. Do not name any person, place, "
+            "breed or object that does not appear in it. Invented creative detail is "
+            "allowed only where the context leaves a gap."
+        )
+        parts.append("")
         parts.append("Write the story now:")
         return "\n".join(parts)
 
