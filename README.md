@@ -31,8 +31,8 @@ Two of the 8 images, chosen by a fixed rule: the largest grounding-score improve
 <th>Regressed: <code>thumb-chihiro004.png</code></th>
 </tr>
 <tr>
-<td align="center"><img src="images/thumb-chihiro002.png" alt="thumb-chihiro002.png" width="260"/><br/>Grounding 0.644 → <b>0.911</b> (+0.267)<br/>Words 47 → 65</td>
-<td align="center"><img src="images/thumb-chihiro004.png" alt="thumb-chihiro004.png" width="260"/><br/>Grounding 0.895 → 0.823 (-0.073)<br/>Words 30 → 59</td>
+<td align="center"><img src="benchmarks/challenge-8-images/thumb-chihiro002.png" alt="thumb-chihiro002.png" width="260"/><br/>Grounding 0.644 → <b>0.911</b> (+0.267)<br/>Words 47 → 65</td>
+<td align="center"><img src="benchmarks/challenge-8-images/thumb-chihiro004.png" alt="thumb-chihiro004.png" width="260"/><br/>Grounding 0.895 → 0.823 (-0.073)<br/>Words 30 → 59</td>
 </tr>
 <tr>
 <td valign="top"><b>Baseline:</b> A woman sits alone on a rocky outcropping, gazing out at the car that drives by. The sun sets over the horizon, casting long shadows across the landscape. She takes a deep breath, feeling the cool breeze on her face as she watches the world pass by.<br/><br/><b>Improved:</b> In the heart of the dense forest, a young girl stood beside a large green monster statue, her eyes sparkling with laughter as she gazed at the towering figure. She wore a simple green dress and a pair of sturdy boots, her face a mix of mischief and innocence. The car, its headlights casting long shadows, passed by, its occupants oblivious to the child&#x27;s presence.</td>
@@ -50,7 +50,7 @@ Two of the 8 images, chosen by a fixed rule: the largest grounding-score improve
 | Evaluation | CLIP + NLI + attribute checks + repetition + length + runtime |
 | Execution | Fully local / offline |
 | Hardware | CPU |
-| Dataset in this repository | 8 evaluation frames (`images/`) |
+| Dataset in this repository | 8 evaluation frames (`benchmarks/challenge-8-images/`) |
 | Final normal comparison | `results_final.csv` |
 | Final length-controlled comparison | `results_final_fixlen.csv` |
 
@@ -166,6 +166,18 @@ flowchart TD
   fixed keyword lists (closed vocabularies; see [Limitations](#limitations)). `<OCR>` is disabled (it returned junk on anime frames).
 - `context_builder.py` is deterministic and has no ML and no image-specific vocabulary. It keeps the detected object labels in order,
   adds up to 5 further object descriptions, up to 3 region descriptions, and trims to 180 words.
+
+### Current system (V2.3)
+
+The V1 code above is the frozen challenge baseline. The production package in `src/image_story/` extends the same idea into separate stages:
+
+```text
+images → vision (Florence-2, GroundingDINO, OCR) → evidence records → world state
+       → scene and entity memory (FAISS, hierarchical retrieval) → creative plan (7 beats)
+       → Qwen2.5-0.5B-Instruct story → claim extraction → verification → grounding evaluation → artifacts
+```
+
+Run it with `python -m image_story benchmarks/challenge-8-images/ --collection`. The full reference, including the stage order, domain contracts and layering, is in [docs/architecture/current.md](docs/architecture/current.md).
 
 ## Structured Vision Context
 
@@ -451,7 +463,7 @@ Image 3 ─┤
 Image N ─┘
 ```
 
-`python main.py images/ --multi` builds a sequence context in filename order; its continuity notes list only entities that occur in at least two different frames. File names are not shown to the story model.
+`python main.py ../../benchmarks/challenge-8-images/ --multi` builds a sequence context in filename order; its continuity notes list only entities that occur in at least two different frames. File names are not shown to the story model.
 Current run: all 8 images, 333 words, cut-off final sentence removed: True.
 
 | Measured structural proxy | Value |
@@ -463,6 +475,14 @@ Current run: all 8 images, 333 words, cut-off final sentence removed: True.
 
 **Not measured:** true narrative coherence and long-range story quality. These numbers describe lexical overlap only. The story is in `combined_story.json`; it still invents a named
 character ("Leo") and relatives that no frame shows, and covers the frames unevenly. A 0.5B model cannot hold a long sequence prompt, so treat it as a demonstration, not as evidence of coherence.
+
+## Complete Story
+
+One story generated from all 8 frames in filename order (`combined_story.json`, produced by `--multi`). It is shown unedited. The model used the sequence context described above.
+
+> In the heart of a bustling European city, where the streets were lined with towering buildings adorned with Christmas decorations, there lived a young boy named Leo. His eyes sparkled with joy as he sat in the back seat of a car, surrounded by the vibrant colors of the holiday season. The car was a classic red, with a green monster statue on the hood, adding a touch of whimsy to the otherwise ordinary scene. Leo's mother, a kind-hearted woman with a penchant for cooking, had prepared a delicious meal for them. As they sat together, enjoying the warmth of the fire crackling in the fireplace, Leo's father, a stern but loving figure, stood nearby, watching over them with a mix of concern and amusement. The day was filled with laughter and joy, as the family gathered around the table, savoring every bite of their meal. The man, a tall, muscular man with a beard, sat at the head of the table, his eyes twinkling with mischief. He held a green leafy vegetable in his mouth, a symbol of good luck and prosperity. The woman, a delicate woman with a gentle demeanor, sat beside her husband, her hands clasped together in a gesture of peace. She held a red railing, a symbol of hope and stability, and looked up at the sky, a serene expression on her face. As the evening wore on, the children played games and laughed together, their spirits lifted by the festive atmosphere. The man, with his green shirt and red lights, stood outside the restaurant, watching the people pass by with a smile on his face. The woman, with her curly hair and a warm smile, walked into the restaurant, her eyes sparkling with excitement. She ordered a hot dog, her face lit up with joy as she ate it, her hands still holding the red railing. The man, with his green shirt and a green leafy vegetable, stood at the entrance, his eyes fixed on the door.
+
+Word count: 333. The final cut-off sentence was removed automatically.
 
 ---
 
@@ -485,7 +505,7 @@ Models: `Salesforce/blip-image-captioning-base`, `Qwen/Qwen2.5-0.5B-Instruct`, `
 ```powershell
 $env:HF_HUB_OFFLINE = "1"
 $env:TRANSFORMERS_OFFLINE = "1"
-python main.py images/ --both
+python main.py ../../benchmarks/challenge-8-images/ --both
 ```
 
 The code sets `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` itself; nothing needs the internet at inference time. It respects an existing `HF_HOME`; otherwise Hugging Face's normal cache
@@ -500,31 +520,31 @@ $env:HF_HOME = "D:\AI-Models\huggingface"   # optional; not required
 **Baseline**
 
 ```powershell
-python main.py images/ --baseline
+python main.py ../../benchmarks/challenge-8-images/ --baseline
 ```
 
 **Improved**
 
 ```powershell
-python main.py images/ --improved
+python main.py ../../benchmarks/challenge-8-images/ --improved
 ```
 
 **Compare**
 
 ```powershell
-python main.py images/ --both --output results_final.csv --vision-json vision_final.json
+python main.py ../../benchmarks/challenge-8-images/ --both --output results_final.csv --vision-json vision_final.json
 ```
 
 **Length-controlled**
 
 ```powershell
-python main.py images/ --both --fix-length --output results_final_fixlen.csv --vision-json vision_final_fixlen.json
+python main.py ../../benchmarks/challenge-8-images/ --both --fix-length --output results_final_fixlen.csv --vision-json vision_final_fixlen.json
 ```
 
 **Multi-image**
 
 ```powershell
-python main.py images/ --multi
+python main.py ../../benchmarks/challenge-8-images/ --multi
 ```
 
 **Metric self-test**
@@ -571,9 +591,9 @@ Experiment protocol: offline mode, seed 0, greedy decoding, the same models and 
 
 ```powershell
 $env:HF_HUB_OFFLINE = "1"; $env:TRANSFORMERS_OFFLINE = "1"
-python main.py images/ --both --output results_final.csv --vision-json vision_final.json
-python main.py images/ --both --fix-length --output results_final_fixlen.csv --vision-json vision_final_fixlen.json
-python main.py images/ --multi
+python main.py ../../benchmarks/challenge-8-images/ --both --output results_final.csv --vision-json vision_final.json
+python main.py ../../benchmarks/challenge-8-images/ --both --fix-length --output results_final_fixlen.csv --vision-json vision_final_fixlen.json
+python main.py ../../benchmarks/challenge-8-images/ --multi
 python metric.py
 python test_pipeline.py --models
 ```
@@ -607,26 +627,21 @@ and from an earlier metric version, so they are kept only as evidence of how the
 ## Project Structure
 
 ```text
-image-story-challenge/
-├── main.py
-├── baseline.py
-├── seeing.py
-├── context_builder.py
-├── metric.py
-├── test_pipeline.py
-├── download_models.py
-├── requirements.txt
-├── images/
-├── selftest_image.jpg
-├── results_final.csv
-├── results_final_fixlen.csv
-├── vision_final.json
-├── vision_final_fixlen.json
-├── combined_story.json
-├── selftest.csv
-├── experiments.md
+image-to-story/
+├── challenges/image-story-v1/   # frozen V1 baseline (main.py, baseline.py, metric.py, ...)
+├── benchmarks/challenge-8-images/
+├── src/image_story/             # V2.3 package: ingestion, vision, memory, retrieval, generation, verification, evaluation
+├── configs/                     # PipelineConfig YAML presets
+├── tests/                       # unit, integration, regression
+├── scripts/                     # run_pipeline.py, run_experiment.py, build_report.py
+├── docs/                        # architecture, decisions, experiments, research
+├── notebooks/
+├── Makefile
+├── pyproject.toml
 └── README.md
 ```
+
+The V1 files are inside `challenges/image-story-v1/` with their own `requirements.txt`. The table below describes those files.
 
 | File | Role |
 |---|---|
@@ -637,7 +652,7 @@ image-story-challenge/
 | `metric.py` | Grounding score, repetition, attribute check, continuity proxy, runtime |
 | `test_pipeline.py` | Unit tests and optional model-dependent tests |
 | `download_models.py` | One-time model download |
-| `images/` | The 8 evaluation frames |
+| `../../benchmarks/challenge-8-images/` | The 8 evaluation frames |
 | `selftest_image.jpg` | Test image for the metric self-test and tests |
 
 The historical result files listed under [Result Artifacts](#result-artifacts) are also in the repository.
@@ -650,7 +665,7 @@ Stories below are copied programmatically from `results_final.csv` (normal run) 
 
 ### Example 1 — `chihiro003.jpg`
 
-<p align="center"><img src="images/chihiro003.jpg" alt="chihiro003.jpg" width="340"/></p>
+<p align="center"><img src="benchmarks/challenge-8-images/chihiro003.jpg" alt="chihiro003.jpg" width="340"/></p>
 
 | | Baseline (BLIP) | Improved (Florence-2) |
 |---|---:|---:|
@@ -664,7 +679,7 @@ Stories below are copied programmatically from `results_final.csv` (normal run) 
 
 ### Example 2 — `thumb-chihiro001.png`
 
-<p align="center"><img src="images/thumb-chihiro001.png" alt="thumb-chihiro001.png" width="340"/></p>
+<p align="center"><img src="benchmarks/challenge-8-images/thumb-chihiro001.png" alt="thumb-chihiro001.png" width="340"/></p>
 
 | | Baseline (BLIP) | Improved (Florence-2) |
 |---|---:|---:|
@@ -678,7 +693,7 @@ Stories below are copied programmatically from `results_final.csv` (normal run) 
 
 ### Example 3 — `thumb-chihiro002.png`
 
-<p align="center"><img src="images/thumb-chihiro002.png" alt="thumb-chihiro002.png" width="340"/></p>
+<p align="center"><img src="benchmarks/challenge-8-images/thumb-chihiro002.png" alt="thumb-chihiro002.png" width="340"/></p>
 
 | | Baseline (BLIP) | Improved (Florence-2) |
 |---|---:|---:|
@@ -692,7 +707,7 @@ Stories below are copied programmatically from `results_final.csv` (normal run) 
 
 ### Example 4 — `thumb-chihiro004.png`
 
-<p align="center"><img src="images/thumb-chihiro004.png" alt="thumb-chihiro004.png" width="340"/></p>
+<p align="center"><img src="benchmarks/challenge-8-images/thumb-chihiro004.png" alt="thumb-chihiro004.png" width="340"/></p>
 
 | | Baseline (BLIP) | Improved (Florence-2) |
 |---|---:|---:|
@@ -706,7 +721,7 @@ Stories below are copied programmatically from `results_final.csv` (normal run) 
 
 ### Example 5 — `thumb-chihiro005.png`
 
-<p align="center"><img src="images/thumb-chihiro005.png" alt="thumb-chihiro005.png" width="340"/></p>
+<p align="center"><img src="benchmarks/challenge-8-images/thumb-chihiro005.png" alt="thumb-chihiro005.png" width="340"/></p>
 
 | | Baseline (BLIP) | Improved (Florence-2) |
 |---|---:|---:|
@@ -720,7 +735,7 @@ Stories below are copied programmatically from `results_final.csv` (normal run) 
 
 ### Example 6 — `thumb-chihiro006.png`
 
-<p align="center"><img src="images/thumb-chihiro006.png" alt="thumb-chihiro006.png" width="340"/></p>
+<p align="center"><img src="benchmarks/challenge-8-images/thumb-chihiro006.png" alt="thumb-chihiro006.png" width="340"/></p>
 
 | | Baseline (BLIP) | Improved (Florence-2) |
 |---|---:|---:|
@@ -734,7 +749,7 @@ Stories below are copied programmatically from `results_final.csv` (normal run) 
 
 ### Example 7 — `thumb-chihiro007.png`
 
-<p align="center"><img src="images/thumb-chihiro007.png" alt="thumb-chihiro007.png" width="340"/></p>
+<p align="center"><img src="benchmarks/challenge-8-images/thumb-chihiro007.png" alt="thumb-chihiro007.png" width="340"/></p>
 
 | | Baseline (BLIP) | Improved (Florence-2) |
 |---|---:|---:|
@@ -748,7 +763,7 @@ Stories below are copied programmatically from `results_final.csv` (normal run) 
 
 ### Example 8 — `thumb-chihiro008.png`
 
-<p align="center"><img src="images/thumb-chihiro008.png" alt="thumb-chihiro008.png" width="340"/></p>
+<p align="center"><img src="benchmarks/challenge-8-images/thumb-chihiro008.png" alt="thumb-chihiro008.png" width="340"/></p>
 
 | | Baseline (BLIP) | Improved (Florence-2) |
 |---|---:|---:|
