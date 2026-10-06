@@ -1,0 +1,23 @@
+# FAST MODE - Minimal pipeline for quick demos
+mode: "fast"
+use_grounding_dino: false
+use_ocr: false
+use_faiss: false
+use_creative_planner: false
+use_verification: false
+max_evidence_per_frame: 20
+faiss_top_k: 5
+context_max_words: 200
+target_story_words: 100
+creativity_config:
+  creativity: 0.5
+  surprise: 0.3
+  humor: 0.3
+  mystery: 0.2
+  emotion: 0.3
+  dialogue: 0.2
+  metaphor: 0.1
+genre: "whimsical"
+tone: "lighthearted"
+seed: 0
+device: "cpu"

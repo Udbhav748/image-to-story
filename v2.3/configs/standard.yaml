@@ -1,0 +1,23 @@
+# STANDARD MODE - Primary development mode
+mode: "standard"
+use_grounding_dino: true
+use_ocr: false
+use_faiss: true
+use_creative_planner: true
+use_verification: true
+max_evidence_per_frame: 50
+faiss_top_k: 10
+context_max_words: 500
+target_story_words: 250
+creativity_config:
+  creativity: 0.7
+  surprise: 0.6
+  humor: 0.5
+  mystery: 0.4
+  emotion: 0.5
+  dialogue: 0.4
+  metaphor: 0.3
+genre: "whimsical"
+tone: "comedic"
+seed: 0
+device: "cpu"
