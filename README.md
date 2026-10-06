@@ -197,7 +197,7 @@ The V1 code above is the frozen challenge baseline. The production package in `s
 
 ```text
 images → vision (Florence-2, GroundingDINO, OCR) → evidence records → world state
-       → FAISS store → retrieval → context builder → creative plan (7 beats)
+       → FAISS vector index → retrieval → context builder → creative plan (7 beats)
        → Qwen2.5-0.5B-Instruct story → claim extraction → verification → grounding evaluation → artifacts
 ```
 
@@ -667,7 +667,7 @@ and from an earlier metric version, so they are kept only as evidence of how the
 image-to-story/
 ├── challenges/image-story-v1/   # frozen V1 baseline (main.py, baseline.py, metric.py, ...)
 ├── benchmarks/challenge-8-images/
-├── src/image_story/             # V2.3 package: ingestion, vision, memory, retrieval, generation, verification, evaluation
+├── src/image_story/             # V2.3 package: ingestion, vision, memory (FAISS index), retrieval, generation, verification, evaluation
 ├── configs/                     # PipelineConfig YAML presets
 ├── tests/                       # unit, integration, regression
 ├── scripts/                     # run_pipeline.py, run_experiment.py, build_report.py
